@@ -148,7 +148,7 @@ fastify.get('/random_word', async (req, reply) => {
   STATE.randomIndex = 1 + Math.floor(Math.random() * STATE.wordCount);
   let translation;
   try {
-    translation = await getNTranslation(STATE.randomIndex);
+    translation = await db.getNTranslation(STATE.randomIndex);
   } catch (err) {
     return reply.code(404).send('db failure');
   }
@@ -159,7 +159,7 @@ fastify.get('/random_word', async (req, reply) => {
 fastify.get('/show_word', async (req, reply) => {
   let translation;
   try {
-    translation = await getNTranslation(STATE.randomIndex);
+    translation = await db.getNTranslation(STATE.randomIndex);
   } catch (err) {
     return reply.code(404).send('db failure');
   }
