@@ -3,8 +3,9 @@ const fastify = require('fastify')({
   logger: true
 });
 const translate = require('google-translate-extended-api');
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database("words.db");
+const ejs = require('ejs');
+const fs = require('fs');
+const db = require('./src/dbqueries');
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_HOST = '0.0.0.0';
@@ -19,125 +20,11 @@ const STATE = {
   randomIndex: 1,
 };
 
+const compiledWord = ejs.compile(fs.readFileSync('src/word.ejs', 'utf8'));
+
 const wordHTML = (json, n, shorten, buttons) => {
-  // Main line
-  let html = `<div id="word-${n}"><div>${json.word}`;
-  if (json.wordTranscription)
-    html += ` [${json.wordTranscription}] - `;
-  else
-    html += ` - `;
-
-  if (json.translations.null && !shorten) {
-    if (!json.translations.null.includes(json.translation))
-      html += `${json.translation}, `;
-
-    html += json.translations.null.join(`, `) + `</div>`;
-  } else
-    html += `${json.translation}</div>`;
-
-  if (shorten) {
-    if (buttons)
-      html += `<a href="" hx-get="/short?n=${n}&i=t" hx-target="#word-${n}">Expand</a></div>`;
-    else
-      html += `</div>`;
-    return html;
-  }
-
-  // Definitions
-  if (json.definitions.null)
-    html += `<p>Определения:</p><div>` + json.definitions.null.join(`</div><div>`) + `</div>`;
-
-  // Examples
-  if (json.examples.length > 0)
-    html += `<p>Примеры:</p><div>` + json.examples.join(`</div><div>`) + `</div>`;
-
-  if (buttons)
-    html += `<a href="" hx-get="/short?n=${n}" hx-target="#word-${n}">Collapse</a></div>`;
-  else
-    html += `</div>`;
-  return html;
+  return compiledWord({json: json, n: n, shorten: shorten, buttons: buttons});
 }
-
-const getTranslation = async (word) => {
-  return new Promise((resolve, reject) => {
-    db.get("SELECT * FROM Words WHERE word = ?", [word], (err, row) => {
-      if (err) {
-        
-        reject(err);
-      } else {
-        if (!row) {
-          resolve({word:'',});
-          return;
-        }
-        resolve(JSON.parse(row.translation));
-      }
-    });
-  });
-};
-
-const getNTranslation = async (n) => {
-  return new Promise((resolve, reject) => {
-    db.get("SELECT * FROM Words WHERE rowid = ?", [n], (err, row) => {
-      if (err) {
-        reject(err);
-      } else {
-        if (!row) {
-          resolve({word:'',});
-          return;
-        }
-        resolve(JSON.parse(row.translation));
-      }
-    });
-  });
-};
-
-const insertAndGetCount = async (word, translation) => {
-  return new Promise((resolve, reject) => {
-    db.serialize(() => {
-      var stmt = db.prepare("INSERT OR IGNORE INTO Words VALUES (?, ?)");
-      stmt.run(word, JSON.stringify(translation, undefined, 2));
-      stmt.finalize();
-
-      db.get("SELECT COUNT(*) as total FROM Words", [], (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          if (!row) {
-            resolve(0);
-            return;
-          }
-          resolve(row.total);
-        }
-      });
-    });
-  });
-};
-
-const getRows = (n, m) => {
-  return new Promise((resolve, reject) => {
-    let allRows = [];
-    db.serialize(() => {
-      const sql = 'SELECT rowid AS id, word, translation FROM Words LIMIT ? OFFSET ?';
-      db.each(sql, [n, m],  function(err, row) {
-        if (err) reject(err);
-        allRows.push(wordHTML(JSON.parse(row.translation), parseInt(row.id), 0, 1) + '<hr/>');
-      }, function() {
-        resolve(allRows);
-      });
-    });
-  });
-};
-
-db.serialize(() => {
-  db.run('CREATE TABLE IF NOT EXISTS Words (word TEXT PRIMARY KEY, translation TEXT)');
-
-  db.get('SELECT COUNT(*) as total FROM Words', [], (err, row) => {
-    if (err) {
-      console.error(err.message);
-    }
-    STATE.wordCount = row.total;
-  });
-});
 
 fastify.register(require('@fastify/static'), {
   root: path.join(__dirname, PUBLIC_FOLDER),
@@ -153,7 +40,7 @@ fastify.get('/translate', async (req, reply) => {
     return reply.type('text/html').send('');
 
   try {
-    STATE.translatedWord = await getTranslation(req.query.word);
+    STATE.translatedWord = await db.getTranslation(req.query.word);
 
     if (STATE.translatedWord.word != '')
       return reply.type('text/html').send(wordHTML(STATE.translatedWord, -1, 0, 0));
@@ -196,7 +83,10 @@ fastify.get('/render_vault', async (req, reply) => {
       idx = 0;
     }
 
-    return reply.type('text/html').send((await getRows(len, idx)).reverse().join(''));
+    return reply.type('text/html').send(
+      (await db.getRows(len, idx)).reverse().map((str, idx) => { 
+	return wordHTML(JSON.parse(str), idx, 0, 1) }).join('<hr/>')
+    );
   } catch (err) {
     console.error(err);
     return reply.type('text/html').send('No entries');
@@ -243,13 +133,12 @@ fastify.get('/full_prev_words', async (req, reply) => {
 });
 
 fastify.get('/short', async (req, reply) => {
-  let translation = STATE.translatedWord;
-  if (req.query.n != '-1')
-    try {
-      translation = await getNTranslation(req.query.n);
-    } catch (err) {
-      return reply.code(404).send('db failure');
-    }
+  let translation;
+  try {
+    translation = await db.getTranslation(req.query.word);
+  } catch (err) {
+    let translation = STATE.translatedWord;
+  }
 
   const inv = !req.query.i;
   return reply.type('text/html').send(wordHTML(translation, parseInt(req.query.n), inv, 1));
@@ -282,6 +171,8 @@ fastify.get('/show_word', async (req, reply) => {
 
 const start = async () => {
   try {
+    STATE.wordCount = await db.init();
+
     let portNumber = parseInt(process.argv[2]);
     if (isNaN(portNumber) || portNumber < 0 || portNumber >= 65536)
         portNumber = DEFAULT_PORT;
