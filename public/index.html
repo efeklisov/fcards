@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My Page</title>
+    <script src="/public/htmx.min.js"></script>
+  </head>
+  <body>
+    <nav>
+      <a 
+        href="/public/translator.html"
+	hx-get="/public/translator.html"
+	hx-target="#content"
+	>Translate</a>
+      <a 
+	href="/public/vault.html"
+	hx-get="/public/vault.html"
+	hx-target="#content"
+	>Vault</a>
+      <a 
+	href="/public/game.html"
+	hx-get="/public/game.html"
+	hx-target="#content"
+	>Game</a>
+    </nav>
+    <div id="content" hx-get="/public/translator.html" hx-trigger="load"></div>
+  </body>
+</html>

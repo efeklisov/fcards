@@ -1,0 +1,18 @@
+{
+  "name": "fcards",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/static": "^6.11.2",
+    "fastify": "^4.23.2",
+    "google-translate-extended-api": "^2.0.4",
+    "sqlite3": "^5.1.6"
+  }
+}

@@ -1,0 +1,9 @@
+<input type="text" name="word"
+	hx-get="/translate"
+	hx-trigger="keyup changed delay:500ms"
+	hx-target="#translate-results"
+	placeholder="Translate..."
+	>
+<div id="translate-results"></div>
+<button hx-get="/save" hx-target="#save-results">Save word</button>
+<div id="save-results"></div>
