@@ -37,7 +37,7 @@ const getNTranslation = async (n) => {
 const insertAndGetCount = async (word, translation) => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
-      var stmt = db.prepare('INSERT OR IGNORE INTO Words VALUES (?, ?)');
+      var stmt = db.prepare('INSERT OR IGNORE INTO Words VALUES (?, ?, 0, 0)');
       stmt.run(word, JSON.stringify(translation, undefined, 2));
       stmt.finalize();
 
@@ -71,10 +71,79 @@ const getRows = async (n, m) => {
   });
 };
 
+const getResults = async (n, g) => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.get('SELECT rowid as id, * FROM Words WHERE rowid = ?', [n], (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          let ret = {guesses: -1, misses: -1};
+          if (!row) {
+            resolve(ret);
+            return;
+          }
+          ret = {guesses: row.guesses + (g ? 1 : 0), misses: row.misses + (g ? 0 : 1)};
+          resolve(ret);
+          
+          db.run('UPDATE Words SET guesses = ?, misses = ? WHERE rowid = ?', 
+            ret.guesses, ret.misses, row.id);
+        }
+      });
+    })
+  });
+};
+
+const getAllMisses = async () => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      db.get('SELECT SUM(misses) as total FROM Words', [], (err, row) => {
+        if (err)
+          reject(err);
+        else
+          resolve(row.total);
+      });
+    })
+  });
+};
+
+const getRandomWord = async (n) => {
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      const sql = `SELECT t1.misses, t1.translation, 
+        (SELECT SUM(t2.misses) FROM Words AS t2 WHERE t2.rowid <= t1.rowid) as cumsum
+        FROM Words AS t1 ORDER BY t1.rowid`;
+
+      db.all(sql, [], (err, rows) => {
+	if (err) {
+	  reject(err)
+	  return;
+	}
+	
+	let ret = {translation: rows[0].translation, index: 1};
+
+	for (let i = 1; i < rows.length; i++)
+	  if (n >= i + rows[i - 1].cumsum && n <= i + rows[i].cumsum) {
+	    ret = {translation: rows[i].translation, index: i + 1};
+	    break;
+	  }
+	
+	resolve(ret);
+      });
+    })
+  });
+};
+
+
 const init = async () => {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
-      db.run('CREATE TABLE IF NOT EXISTS Words (word TEXT PRIMARY KEY, translation TEXT)');
+      db.run(`CREATE TABLE IF NOT EXISTS Words (
+        word TEXT PRIMARY KEY,
+	translation TEXT,
+	guesses INTEGER,
+	misses INTEGER
+      )`);
 
       db.get('SELECT COUNT(*) as total FROM Words', [], (err, row) => {
         if (err) {
@@ -91,4 +160,7 @@ module.exports.getTranslation = getTranslation;
 module.exports.getNTranslation = getNTranslation;
 module.exports.insertAndGetCount = insertAndGetCount;
 module.exports.getRows = getRows;
+module.exports.getResults = getResults;
+module.exports.getAllMisses = getAllMisses;
+module.exports.getRandomWord = getRandomWord;
 module.exports.init = init;

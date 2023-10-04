@@ -1,0 +1,49 @@
+<% for (let i = 0; i < json.length; i++) { %>
+  <div id="word-<%= offset + i %>">
+    <div><%= json[i].word %>
+    <% if (json[i].wordTranscription) { %>
+      [<%= json[i].wordTranscription %>] -
+    <% } else { %>
+      -
+    <% } %>
+    <% if (json[i].translations.null && !shorten) { %>
+      <% if (!json[i].translations.null.includes(json[i].translation)) { %>
+        <%= json[i].translation %>,
+      <% } %>
+      <%= json[i].translations.null.join(', ') %>
+    </div>
+    <% } else { %>
+      <%= json[i].translation %></div>
+    <% } %>
+    <% if (shorten) { %>
+      <% if (buttons) { %>
+        <a href="" hx-get="/short?n=<%= offset + i %>&word=<%= json[i].word %>&i=t" hx-target="#word-<%= offset + i %>">Expand</a></div>
+      <% } else { %>
+        </div>
+      <% } %>
+    <% } else { %>
+      <!-- Definitions -->
+      <% if (json[i].definitions.null) { %>
+        <p>Определения:</p><div> <%- json[i].definitions.null.join('</div><div>') %> </div>
+      <% } %>
+      <!-- Examples -->
+      <% if (json[i].examples.length > 0) { %>
+        <p>Примеры:</p><div> <%- json[i].examples.join('</div><div>') %> </div>
+      <% } %>
+      <% if (buttons) { %>
+        <a href="" hx-get="/short?n=<%= offset + i %>&word=<%= json[i].word %>" hx-target="#word-<%= offset + i %>">Collapse</a></div>
+      <% } else { %>
+        </div>
+      <% } %>
+    <% } %>
+  </div>
+  <% if (gameButtons) { %>
+    <div id="game-buttons">
+      <button hx-get="/show_result?g=t" hx-target="#game-buttons">Correct</button>
+      <button hx-get="/show_result" hx-target="#game-buttons">Wrong</button>
+    </div>
+  <% } %>
+  <% if (i < json.length - 1) { %>
+    <hr/>
+  <% } %>
+<% } %>

@@ -6,6 +6,7 @@
 <button name="FullNext" hx-get="/full_next_words" hx-target="#words_list">Last</button>
 <hr/>
 <div id="words_list" hx-get="/render_vault?reset=true" hx-trigger="load"></div>
+<hr/>
 <button name="FullPrevious" hx-get="/full_prev_words" hx-target="#words_list">First</button>
 <button name="Previous" hx-get="/prev_words" hx-target="#words_list">Previous</button>
 <button name="Next" hx-get="/next_words" hx-target="#words_list">Next</button>

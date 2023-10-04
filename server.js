@@ -3,33 +3,35 @@ const fastify = require('fastify')({
   logger: true
 });
 const translate = require('google-translate-extended-api');
-const ejs = require('ejs');
 const fs = require('fs');
 const db = require('./src/dbqueries');
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_HOST = '0.0.0.0';
 const PUBLIC_FOLDER = 'public';
+const TEMPLATE_FOLDER = 'templates';
 const INDEX_PAGE = 'index.html';
 const WORDS_PER_PAGE = 5;
 
 const STATE = {
   translatedWord: {word: '',},
   wordCount: 0,
+  allMisses: 0,
   watchIndex: 0,
   randomIndex: 1,
 };
-
-const compiledWord = ejs.compile(fs.readFileSync('src/word.ejs', 'utf8'));
-
-const wordHTML = (json, n, shorten, buttons) => {
-  return compiledWord({json: json, n: n, shorten: shorten, buttons: buttons});
-}
 
 fastify.register(require('@fastify/static'), {
   root: path.join(__dirname, PUBLIC_FOLDER),
   prefix: '/public/',
 })
+
+fastify.register(require("@fastify/view"), {
+  root: path.join(__dirname, TEMPLATE_FOLDER),
+  engine: {
+    ejs: require('ejs')
+  }
+});
 
 fastify.get('/', async (req, reply) => {
   return reply.sendFile(INDEX_PAGE);
@@ -43,14 +45,16 @@ fastify.get('/translate', async (req, reply) => {
     STATE.translatedWord = await db.getTranslation(req.query.word);
 
     if (STATE.translatedWord.word != '')
-      return reply.type('text/html').send(wordHTML(STATE.translatedWord, -1, 0, 0));
+      return reply.view('word.ejs', {json: [STATE.translatedWord],
+        shorten: 0, buttons: 0, gameButtons: 0, offset: 0});
   } catch (err) {
     console.error(err);
   }
 
   try {
     STATE.translatedWord = await translate(req.query.word, 'en', 'ru');
-    return reply.type('text/html').send(wordHTML(STATE.translatedWord, -1, 0, 0));
+    return reply.view('word.ejs', {json: [STATE.translatedWord],
+      shorten: 0, buttons: 0, gameButtons: 0, offset: 0});
   } catch (err) {
     console.error(err);
   }
@@ -63,7 +67,9 @@ fastify.get('/save', async (req, reply) => {
     return reply.type('text/html').send('Empty');
   
   try {
-    STATE.wordCount = await insertAndGetCount(STATE.translatedWord.word, STATE.translatedWord);
+    STATE.wordCount = await db.insertAndGetCount(
+      STATE.translatedWord.word, STATE.translatedWord);
+
     return reply.type('text/html').send('Saved!');
   } catch (err) {
     console.error(err);
@@ -82,11 +88,9 @@ fastify.get('/render_vault', async (req, reply) => {
       len += idx;
       idx = 0;
     }
-
-    return reply.type('text/html').send(
-      (await db.getRows(len, idx)).reverse().map((str, idx) => { 
-	return wordHTML(JSON.parse(str), idx, 0, 1) }).join('<hr/>')
-    );
+	
+    return reply.view('word.ejs', {json: (await db.getRows(len, idx))
+      .map(JSON.parse).reverse(), shorten: 0, buttons: 1, gameButtons: 0, offset: 0});
   } catch (err) {
     console.error(err);
     return reply.type('text/html').send('No entries');
@@ -141,19 +145,26 @@ fastify.get('/short', async (req, reply) => {
   }
 
   const inv = !req.query.i;
-  return reply.type('text/html').send(wordHTML(translation, parseInt(req.query.n), inv, 1));
+  return reply.view('word.ejs', {json: [translation],
+    shorten: inv, buttons: 1, gameButtons: 0, offset: req.query.n});
 });
 
 fastify.get('/random_word', async (req, reply) => {
-  STATE.randomIndex = 1 + Math.floor(Math.random() * STATE.wordCount);
+  if (!STATE.wordCount)
+    return reply.sendFile('game_empty.html');
+
+  const randNum = Math.floor(Math.random() * (STATE.wordCount + STATE.allMisses));
   let translation;
   try {
-    translation = await db.getNTranslation(STATE.randomIndex);
+    const ret = await db.getRandomWord(randNum);
+
+    translation = JSON.parse(ret.translation);
+    STATE.randomIndex = ret.index;
   } catch (err) {
     return reply.code(404).send('db failure');
   }
 
-  return reply.type('text/html').send(translation.word);
+  return reply.view('game_start.ejs', {word: translation.word});
 });
 
 fastify.get('/show_word', async (req, reply) => {
@@ -164,14 +175,27 @@ fastify.get('/show_word', async (req, reply) => {
     return reply.code(404).send('db failure');
   }
 
-  return reply.type('text/html').send(wordHTML(translation, STATE.randomIndex, 0, 0) +
-`<button hx-get="/public/game.html" hx-target="#random-word" hx-swap="outerHTML">Next</button>`
-  );
+  return reply.view('word.ejs', {json: [translation],
+    shorten: 0, buttons: 0, gameButtons: 1, offset: 0});
+});
+
+fastify.get('/show_result', async (req, reply) => {
+  if (!req.query.g) STATE.allMisses++;
+
+  let results;
+  try {
+    results = await db.getResults(STATE.randomIndex, req.query.g);
+  } catch (err) {
+    return reply.code(404).send('db failure');
+  }
+
+  return reply.view('game_results.ejs', {guesses: results.guesses, misses: results.misses});
 });
 
 const start = async () => {
   try {
     STATE.wordCount = await db.init();
+    STATE.allMisses = await db.getAllMisses()
 
     let portNumber = parseInt(process.argv[2]);
     if (isNaN(portNumber) || portNumber < 0 || portNumber >= 65536)
