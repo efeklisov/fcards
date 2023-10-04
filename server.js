@@ -39,7 +39,7 @@ fastify.get('/', async (req, reply) => {
 
 fastify.get('/translate', async (req, reply) => {
   if (req.query.word == '')
-    return reply.type('text/html').send('');
+    return reply.sendFile('empty_word.html');
 
   try {
     STATE.translatedWord = await db.getTranslation(req.query.word);
@@ -59,22 +59,22 @@ fastify.get('/translate', async (req, reply) => {
     console.error(err);
   }
 
-  return reply.type('text/html').send('');
+  return reply.sendFile('empty_word.html');
 });
 
 fastify.get('/save', async (req, reply) => {
   if (STATE.translatedWord.word == '')
-    return reply.type('text/html').send('Empty');
+    return reply.sendFile('empty.html');
   
   try {
     STATE.wordCount = await db.insertAndGetCount(
       STATE.translatedWord.word, STATE.translatedWord);
 
-    return reply.type('text/html').send('Saved!');
+    return reply.sendFile('saved.html');
   } catch (err) {
     console.error(err);
   }
-  return reply.type('text/html').send('Save failed!');
+  return reply.sendFile('save_failed.html');
 });
 
 fastify.get('/render_vault', async (req, reply) => {
@@ -93,12 +93,12 @@ fastify.get('/render_vault', async (req, reply) => {
       .map(JSON.parse).reverse(), shorten: 0, buttons: 1, gameButtons: 0, offset: 0});
   } catch (err) {
     console.error(err);
-    return reply.type('text/html').send('No entries');
+    return reply.sendFile('vault_error.html');
   }
 });
 
 fastify.get('/get_word_count', async (req, reply) => {
-  return reply.type('text/html').send("Total: " + STATE.wordCount.toString());
+  return reply.view('count.ejs', {wordCount: STATE.wordCount.toString()});
 });
 
 fastify.get('/get_pages', async (req, reply) => {
@@ -108,7 +108,7 @@ fastify.get('/get_pages', async (req, reply) => {
 
   const maxPages = Math.ceil(STATE.wordCount / WORDS_PER_PAGE);
   const currPage = Math.floor(watchIndex / WORDS_PER_PAGE) + (maxPages ? 1 : 0);
-  return reply.type('text/html').send(`Page ${currPage} of ${maxPages}`);
+  return reply.view('pages.ejs', {currPage: currPage, maxPages: maxPages});
 });
 
 fastify.get('/next_words', async (req, reply) => {
