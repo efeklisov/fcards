@@ -16,5 +16,8 @@
     "fastify": "^4.23.2",
     "google-translate-extended-api": "^2.0.4",
     "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.3.3"
   }
 }

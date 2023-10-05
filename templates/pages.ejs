@@ -1,1 +1,81 @@
-Page <%= currPage %> of <%= maxPages %>
+<div id="pages-all">
+  <center>
+    Total:
+    <%= wordCount %>
+  </center>
+  <center class="py-1">
+    <button
+      class="bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+      name="FullPrevious"
+      hx-get="/full_prev_words"
+      hx-target="#pages-all"
+    >
+      First
+    </button>
+    <button
+      class="bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+      name="Previous"
+      hx-get="/prev_words"
+      hx-target="#pages-all"
+    >
+      Prev
+    </button>
+    <%= currPage %>
+    of
+    <%= maxPages %>
+    <button
+      class="bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+      name="Next"
+      hx-get="/next_words"
+      hx-target="#pages-all"
+    >
+      Next
+    </button>
+    <button
+      class="bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+      name="FullNext"
+      hx-get="/full_next_words"
+      hx-target="#pages-all"
+    >
+      Last
+    </button>
+  </center>
+  <div hx-get="/render_vault" hx-trigger="load" hx-swap="outerHTML"></div>
+  <center class="py-1">
+    <button
+      class="bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+      name="FullPrevious"
+      hx-get="/full_prev_words"
+      hx-target="#pages-all"
+    >
+      First
+    </button>
+    <button
+      class="bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+      name="Previous"
+      hx-get="/prev_words"
+      hx-target="#pages-all"
+    >
+      Prev
+    </button>
+    <%= currPage %>
+    of
+    <%= maxPages %>
+    <button
+      class="bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+      name="Next"
+      hx-get="/next_words"
+      hx-target="#pages-all"
+    >
+      Next
+    </button>
+    <button
+      class="bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+      name="FullNext"
+      hx-get="/full_next_words"
+      hx-target="#pages-all"
+    >
+      Last
+    </button>
+  </center>
+</div>

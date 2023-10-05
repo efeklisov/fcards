@@ -1,2 +1,4 @@
-<div><%= word %></div>
-<button hx-get="/show_word" hx-target="#random-word">Show</button>`
+<div class="m-2 text-bold"><%= word %></div>
+<button 
+  class="m-2 bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+  hx-get="/show_word" hx-target="#random-word">Show</button>

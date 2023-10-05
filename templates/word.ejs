@@ -1,5 +1,5 @@
 <% for (let i = 0; i < json.length; i++) { %>
-  <div id="word-<%= offset + i %>">
+  <div id="word-<%= offset + i %>" class="shadow-lg rounded p-1 my-4 mx-2 bg-slate-800 border-2 border-slate-900">
     <div><%= json[i].word %>
     <% if (json[i].wordTranscription) { %>
       [<%= json[i].wordTranscription %>] -
@@ -17,21 +17,21 @@
     <% } %>
     <% if (shorten) { %>
       <% if (buttons) { %>
-        <a href="" hx-get="/short?n=<%= offset + i %>&word=<%= json[i].word %>&i=t" hx-target="#word-<%= offset + i %>">Expand</a></div>
+        <a href="" class="text-sky-500" hx-get="/short?n=<%= offset + i %>&word=<%= json[i].word %>&i=t" hx-target="#word-<%= offset + i %>" hx-swap="outerHTML">Expand</a></div>
       <% } else { %>
         </div>
       <% } %>
     <% } else { %>
       <!-- Definitions -->
       <% if (json[i].definitions.null) { %>
-        <p>Определения:</p><div> <%- json[i].definitions.null.join('</div><div>') %> </div>
+        <p class="text-slate-400">Определения:</p><div> <%- json[i].definitions.null.join('</div><div>') %> </div>
       <% } %>
       <!-- Examples -->
       <% if (json[i].examples.length > 0) { %>
-        <p>Примеры:</p><div> <%- json[i].examples.join('</div><div>') %> </div>
+        <p class="text-slate-400">Примеры:</p><div> <%- json[i].examples.join('</div><div>') %> </div>
       <% } %>
       <% if (buttons) { %>
-        <a href="" hx-get="/short?n=<%= offset + i %>&word=<%= json[i].word %>" hx-target="#word-<%= offset + i %>">Collapse</a></div>
+        <a href="" class="text-sky-500" hx-get="/short?n=<%= offset + i %>&word=<%= json[i].word %>" hx-target="#word-<%= offset + i %>" hx-swap="outerHTML">Collapse</a></div>
       <% } else { %>
         </div>
       <% } %>
@@ -39,11 +39,12 @@
   </div>
   <% if (gameButtons) { %>
     <div id="game-buttons">
-      <button hx-get="/show_result?g=t" hx-target="#game-buttons">Correct</button>
-      <button hx-get="/show_result" hx-target="#game-buttons">Wrong</button>
+      <button 
+        class="ml-2 bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+        hx-get="/show_result?g=t" hx-target="#game-buttons">Correct</button>
+      <button 
+        class="bg-blue-500 hover:bg-blue-700 font-bold py-1 px-2 rounded-xl shadow-lg"
+        hx-get="/show_result" hx-target="#game-buttons">Wrong</button>
     </div>
-  <% } %>
-  <% if (i < json.length - 1) { %>
-    <hr/>
   <% } %>
 <% } %>

@@ -1,26 +1,33 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>My Page</title>
     <script src="/public/htmx.min.js"></script>
+    <link href="/public/index.css" rel="stylesheet" />
   </head>
-  <body>
-    <nav>
-      <a 
+  <body class="text-white bg-slate-900">
+    <nav class="flex w-full">
+      <a
+        class="border-r-2 border-slate-900 w-1/3 text-center bg-slate-800 hover:bg-slate-600"
         href="/public/translator.html"
-	hx-get="/public/translator.html"
-	hx-target="#content"
-	>Translate</a>
-      <a 
-	href="/public/vault.html"
-	hx-get="/public/vault.html"
-	hx-target="#content"
-	>Vault</a>
-      <a 
-	href="/public/game.html"
-	hx-get="/public/game.html"
-	hx-target="#content"
-	>Game</a>
+        hx-get="/public/translator.html"
+        hx-target="#content"
+        >Translate</a
+      >
+      <a
+        class="border-l-2 border-r-2 border-slate-900 w-1/3 text-center bg-slate-800 hover:bg-slate-600"
+        href="/public/vault.html"
+        hx-get="/public/vault.html"
+        hx-target="#content"
+        >Vault</a
+      >
+      <a
+        class="border-l-2 border-slate-900 w-1/3 text-center bg-slate-800 hover:bg-slate-600"
+        href="/public/game.html"
+        hx-get="/public/game.html"
+        hx-target="#content"
+        >Game</a
+      >
     </nav>
     <div id="content" hx-get="/public/translator.html" hx-trigger="load"></div>
   </body>
